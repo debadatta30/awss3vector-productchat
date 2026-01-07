@@ -169,25 +169,8 @@ Modify `SIMILARITY_THRESHOLD` in the Lambda code (default: 0.5)
 - Lower values = stricter matching
 - Higher values = more lenient matching
 
-## 💰 AWS Costs
 
-Estimated monthly costs for moderate usage:
-- **Lambda**: ~$1-5 (depending on requests)
-- **Bedrock Nova Lite**: ~$2-10 (per 1M tokens)
-- **Bedrock Titan Embed**: ~$0.10 (per 1M tokens)
-- **S3 Vectors**: ~$1-5 (storage and queries)
-- **S3**: ~$0.50 (storage and requests)
-- **API Gateway**: ~$1-3 (per 1M requests)
-
-## 🔒 Security
-
-- API Gateway with CORS properly configured
-- Lambda execution role with minimal required permissions
-- S3 bucket policies for appropriate access levels
-- No sensitive data exposed in frontend code
-- Proper error handling without information leakage
-
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 

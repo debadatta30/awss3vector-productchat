@@ -122,7 +122,7 @@ def delete_api_gateway(api_name):
 
 def cleanup_all():
     """Clean up all existing resources"""
-    print("🧹 Starting cleanup of existing Product Chat resources...")
+    print("🧹 Starting cleanup of Product Chat AWS resources...")
     print("=" * 60)
     
     # List of resources to clean up
@@ -130,19 +130,10 @@ def cleanup_all():
         # Current deployment resources
         ("S3 Bucket", "product-chat-data", lambda: delete_s3_bucket("product-chat-data")),
         ("S3 Vectors Bucket", "product-chat-vectors", lambda: delete_s3_vectors_bucket("product-chat-vectors")),
-        ("S3 Vectors Bucket", "test-product-vectors", lambda: delete_s3_vectors_bucket("test-product-vectors")),
         ("Website Bucket", "product-chat-website", lambda: delete_s3_bucket("product-chat-website")),
         ("Lambda Function", "product-chat-api", lambda: delete_lambda_function("product-chat-api")),
         ("IAM Role", "product-chat-lambda-role", lambda: delete_iam_role("product-chat-lambda-role")),
         ("API Gateway", "product-chat-api", lambda: delete_api_gateway("product-chat-api")),
-        
-        # Clean deployment resources (in case they exist)
-        ("S3 Bucket (Clean)", "product-chat-data-clean", lambda: delete_s3_bucket("product-chat-data-clean")),
-        ("S3 Vectors Bucket (Clean)", "product-chat-vectors-clean", lambda: delete_s3_vectors_bucket("product-chat-vectors-clean")),
-        ("Website Bucket (Clean)", "product-chat-website-clean", lambda: delete_s3_bucket("product-chat-website-clean")),
-        ("Lambda Function (Clean)", "product-chat-api-clean", lambda: delete_lambda_function("product-chat-api-clean")),
-        ("IAM Role (Clean)", "product-chat-lambda-role-clean", lambda: delete_iam_role("product-chat-lambda-role-clean")),
-        ("API Gateway (Clean)", "product-chat-api-clean", lambda: delete_api_gateway("product-chat-api-clean")),
     ]
     
     success_count = 0
@@ -159,15 +150,16 @@ def cleanup_all():
     print("=" * 60)
     
     if success_count > 0:
-        print("✅ Cleanup completed! You can now run the clean setup script.")
+        print("✅ Cleanup completed! You can now run the deployment script.")
         print("\nNext steps:")
-        print("1. Run: python setup_complete_clean.py")
+        print("1. Run: python deploy_backend_simple.py")
         print("2. Wait for the complete deployment")
-        print("3. Test your new clean application")
+        print("3. Test your application")
     else:
-        print("ℹ️  No resources found to clean up. You can proceed with the clean setup.")
+        print("ℹ  No resources found to clean up. You can proceed with deployment.")
     
-    print("\n🚀 Ready for fresh deployment!")
+    print("
+🚀 Ready for fresh deployment!")
 
 if __name__ == "__main__":
     cleanup_all()

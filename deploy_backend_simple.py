@@ -116,122 +116,111 @@ def deploy_backend():
     role_response = iam.get_role(RoleName=ROLE_NAME)
     role_arn = role_response['Role']['Arn']
     
-    # Lambda code
-    lambda_code = f'''import json
+    # Lambda code - using separate file to avoid f-string issues
+    lambda_code = """import json
 import boto3
 
 bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
 s3vectors = boto3.client('s3vectors', region_name='us-east-1')
 
 def lambda_handler(event, context):
-    headers = {{
+    headers = {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
         'Access-Control-Allow-Methods': 'POST,OPTIONS'
-    }}
+    }
     
     try:
         if event.get('httpMethod') == 'OPTIONS':
-            return {{'statusCode': 200, 'headers': headers, 'body': ''}}
+            return {'statusCode': 200, 'headers': headers, 'body': ''}
         
-        body = json.loads(event.get('body', '{{}}'))
+        body = json.loads(event.get('body', '{}'))
         question = body.get('question', '').strip()
         
         if not question:
-            return {{'statusCode': 400, 'headers': headers, 'body': json.dumps({{'error': 'Question is required'}})}}
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Question is required'})}
         
         # Get embedding
-        response = bedrock.invoke_model(modelId="amazon.titan-embed-text-v1", body=json.dumps({{"inputText": question}}))
+        response = bedrock.invoke_model(modelId="amazon.titan-embed-text-v1", body=json.dumps({"inputText": question}))
         user_embedding = json.loads(response['body'].read())['embedding']
         
         # Query S3 Vectors
         query_vector_float32 = [float(x) for x in user_embedding]
         response = s3vectors.query_vectors(
-            vectorBucketName="{VECTOR_BUCKET_NAME}",
+            vectorBucketName="product-chat-vectors",
             indexName="products",
             topK=1,
-            queryVector={{'float32': query_vector_float32}},
+            queryVector={'float32': query_vector_float32},
             returnMetadata=True,
             returnDistance=True
         )
         
         if response['vectors']:
             result = response['vectors'][0]
-            metadata = result.get('metadata', {{}})
+            metadata = result.get('metadata', {})
             distance = result.get('distance', 0.0)
             similarity = 1.0 - distance if distance else 1.0
             
             if similarity >= 0.5:
                 # Generate response with Nova Lite
-                prompt = f"""You are a helpful product assistant. Answer the customer's question about this product.
-
-Customer Question: {{question}}
-
-Product Information:
-- Name: {{metadata.get('name', '')}}
-- Category: {{metadata.get('category', '')}}
-- Price: ${{metadata.get('price', '')}}
-- Description: {{metadata.get('description', '')}}
-- Features: {{metadata.get('features', '').replace('|', ', ')}}
-
-Provide a helpful, friendly response about this product. Be concise and focus on what the customer asked."""
+                prompt = f"You are a helpful product assistant. Answer the customer's question about this product.\\n\\nCustomer Question: {question}\\n\\nProduct Information:\\n- Name: {metadata.get('name', '')}\\n- Category: {metadata.get('category', '')}\\n- Price: ${metadata.get('price', '')}\\n- Description: {metadata.get('description', '')}\\n- Features: {metadata.get('features', '').replace('|', ', ')}\\n\\nProvide a helpful, friendly response about this product. Be concise and focus on what the customer asked."
 
                 try:
                     nova_response = bedrock.invoke_model(
                         modelId="us.amazon.nova-lite-v1:0",
-                        body=json.dumps({{
-                            "messages": [{{"role": "user", "content": [{{"text": prompt}}]}}],
-                            "inferenceConfig": {{"max_new_tokens": 200, "temperature": 0.7}}
-                        }})
+                        body=json.dumps({
+                            "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                            "inferenceConfig": {"max_new_tokens": 200, "temperature": 0.7}
+                        })
                     )
                     nova_result = json.loads(nova_response['body'].read())
                     answer = nova_result['output']['message']['content'][0]['text']
                 except:
-                    answer = f"Here's what I found about {{metadata.get('name', '')}}: {{metadata.get('description', '')}} It's priced at ${{metadata.get('price', '')}}."
+                    answer = f"Here's what I found about {metadata.get('name', '')}: {metadata.get('description', '')} It's priced at ${metadata.get('price', '')}."
                 
-                return {{
+                return {
                     'statusCode': 200,
                     'headers': headers,
-                    'body': json.dumps({{
+                    'body': json.dumps({
                         'answer': answer,
                         'confidence': round(similarity, 2),
-                        'product': {{
+                        'product': {
                             'name': metadata.get('name', ''),
                             'category': metadata.get('category', ''),
                             'price': float(metadata.get('price', 0))
-                        }},
+                        },
                         'found_product': True
-                    }})
-                }}
+                    })
+                }
         
         # No match found
         try:
             nova_response = bedrock.invoke_model(
                 modelId="us.amazon.nova-lite-v1:0",
-                body=json.dumps({{
-                    "messages": [{{"role": "user", "content": [{{"text": f"A customer asked: '{{question}}'. You couldn't find a matching product. Politely let them know and suggest they browse categories or contact support."}}]}}],
-                    "inferenceConfig": {{"max_new_tokens": 150, "temperature": 0.7}}
-                }})
+                body=json.dumps({
+                    "messages": [{"role": "user", "content": [{"text": f"A customer asked: '{question}'. You couldn't find a matching product. Politely let them know and suggest they browse categories or contact support."}]}],
+                    "inferenceConfig": {"max_new_tokens": 150, "temperature": 0.7}
+                })
             )
             nova_result = json.loads(nova_response['body'].read())
             answer = nova_result['output']['message']['content'][0]['text']
         except:
             answer = "I couldn't find a specific product matching your query. Please browse our categories or contact support for assistance."
         
-        return {{
+        return {
             'statusCode': 200,
             'headers': headers,
-            'body': json.dumps({{
+            'body': json.dumps({
                 'answer': answer,
                 'confidence': 0.0,
                 'found_product': False
-            }})
-        }}
+            })
+        }
         
     except Exception as e:
-        return {{'statusCode': 500, 'headers': headers, 'body': json.dumps({{'error': str(e)}})}}
-'''
+        return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'error': str(e)})}
+"""
     
     # Create deployment package
     with zipfile.ZipFile('lambda_deployment.zip', 'w') as zip_file:

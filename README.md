@@ -63,6 +63,7 @@ Copy the API URL from Step 1 output and update `frontend/src/App.js`:
 ```javascript
 const API_URL = 'https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod/chat';
 ```
+Replace `YOUR_API_ID` with the actual API Gateway ID from the deployment output.
 
 ### Step 3: Deploy Frontend
 ```bash
@@ -124,7 +125,7 @@ python deploy_frontend.py
 
 To remove all AWS resources:
 ```bash
-python cleanup_aws_resources.py
+python simple_cleanup.py
 ```
 
 This will delete:

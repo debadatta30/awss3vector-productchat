@@ -4,9 +4,6 @@ An AI-powered product chat application that uses Amazon S3 Vectors for semantic 
 
 ## 🏗️ Architecture
 
-```
-Frontend (React) → API Gateway → Lambda (Nova Lite) → S3 Vectors (Embeddings)
-```
 
 - **Frontend**: React app deployed to S3 static website
 - **Backend**: Lambda function using S3 Vectors for semantic search and Nova Lite for AI responses
